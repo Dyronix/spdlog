@@ -3,16 +3,23 @@
 # Distributed under the MIT License (http://opensource.org/licenses/MIT)
 #
 
+# --------------------------
+# Setup sources
+# --------------------------
+SET (SPDLOG_LIBRARY_NAME spdlog)
+SET (SPDLOG_INTERFACE_NAME ${SPDLOG_LIBRARY_NAME}_interface)
+
 cmake_minimum_required(VERSION 3.1)
-project(spdlog VERSION 0.17.0 LANGUAGES CXX)
-include(CTest)
-include(CMakeDependentOption)
+
+project(${SPDLOG_LIBRARY_NAME} VERSION 0.17.0 LANGUAGES CXX)
+
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 #---------------------------------------------------------------------------------------
 # compiler config
 #---------------------------------------------------------------------------------------
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
@@ -22,35 +29,17 @@ endif()
 #---------------------------------------------------------------------------------------
 # spdlog target
 #---------------------------------------------------------------------------------------
-add_library(spdlog INTERFACE)
+add_library(${SPDLOG_INTERFACE_NAME} INTERFACE)
 
-option(SPDLOG_BUILD_EXAMPLES "Build examples" OFF)
-cmake_dependent_option(SPDLOG_BUILD_TESTING
-    "Build spdlog tests" ON
-    "BUILD_TESTING" OFF
-)
-
-target_include_directories(
-    spdlog
-    INTERFACE
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>"
-    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-)
-
-set(HEADER_BASE "${CMAKE_CURRENT_SOURCE_DIR}/include")
-
-if(SPDLOG_BUILD_EXAMPLES)
-    add_subdirectory(example)
-endif()
-
-if(SPDLOG_BUILD_TESTING)
-    add_subdirectory(tests)
-endif()
+target_include_directories( ${SPDLOG_INTERFACE_NAME} INTERFACE
+											"$<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}/include>"
+    										"$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
 
 #---------------------------------------------------------------------------------------
 # Install/export targets and files
 #---------------------------------------------------------------------------------------
 # set files and directories
+set(header_base "${CMAKE_CURRENT_SOURCE_DIR}/include")
 set(config_install_dir "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 set(include_install_dir "${CMAKE_INSTALL_INCLUDEDIR}")
 set(pkgconfig_install_dir "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
@@ -61,23 +50,20 @@ set(targets_export_name "${PROJECT_NAME}Targets")
 set(namespace "${PROJECT_NAME}::")
 
 # generate package version file
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-    "${version_config}" COMPATIBILITY SameMajorVersion
-)
+write_basic_package_version_file("${version_config}" COMPATIBILITY SameMajorVersion)
 
 # configure pkg config file
 configure_file("cmake/spdlog.pc.in" "${pkg_config}" @ONLY)
 
 # install targets
 install(
-    TARGETS spdlog
+    TARGETS ${SPDLOG_INTERFACE_NAME}
     EXPORT "${targets_export_name}"
 )
 
 # install headers
 install(
-    DIRECTORY "${HEADER_BASE}/${PROJECT_NAME}"
+    DIRECTORY "${header_base}/${PROJECT_NAME}"
     DESTINATION "${include_install_dir}"
 )
 
@@ -111,5 +97,9 @@ export(
 # register project in CMake user registry
 export(PACKAGE ${PROJECT_NAME})
 
-file(GLOB_RECURSE spdlog_include_SRCS "${HEADER_BASE}/*.h")
-add_custom_target(spdlog_headers_for_ide SOURCES ${spdlog_include_SRCS})
+file(GLOB_RECURSE TARGET_INC "${header_base}/*.h")
+
+add_custom_target(${SPDLOG_LIBRARY_NAME} SOURCES ${TARGET_INC})
+
+set_target_properties( ${SPDLOG_LIBRARY_NAME} PROPERTIES   VS_DEBUGGER_WORKING_DIRECTORY    "${OUTPUT_BINDIR}"              # Working directory
+                                                           FOLDER                           "0. External Libraries")        # Project filter location
