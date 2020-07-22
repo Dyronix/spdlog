@@ -288,8 +288,6 @@ inline bool spdlog::details::async_log_helper::process_next_msg()
         handle_flush_interval();
         return true;
     }
-    assert(false);
-    return true; // should not be reached
 }
 
 inline void spdlog::details::async_log_helper::set_formatter(formatter_ptr msg_formatter)
